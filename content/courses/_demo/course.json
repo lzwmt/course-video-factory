@@ -1,0 +1,25 @@
+{
+  "id": "demo",
+  "name": "Demo Course",
+  "instructor": "Demo",
+  "target_audience": "Engineers trying the open-source video factory",
+  "theme": {
+    "primary_color": "#6366F1",
+    "primary_glow": "rgba(99, 102, 241, 0.25)",
+    "bg_color": "#0B0F19",
+    "badge_prefix": "Demo"
+  },
+  "avatar": {
+    "image": "assets/avatars/demo.png",
+    "default_tier": "support",
+    "position": "bottom_right"
+  },
+  "tts": {
+    "engine": "edge",
+    "speaker": "yunxi",
+    "rate": "+0%",
+    "pitch": "+0Hz"
+  },
+  "default_template": "system_evolution",
+  "attribution": "Demo"
+}

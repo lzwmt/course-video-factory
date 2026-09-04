@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN" data-resolution="portrait">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, height=1920" />
+  <title>系统设计课件 · HyperFrames 总览</title>
+  <link rel="stylesheet" href="assets/styles/global.css" />
+  <script src="assets/scripts/gsap.min.js"></script>
+</head>
+<body>
+  <div id="root" class="composition-root" data-composition-id="main" data-start="0" data-duration="60" data-width="1080" data-height="1920" style="padding: 80px 60px; overflow-y: auto;">
+    <div class="bg-ambient"></div>
+    <div class="bg-grid"></div>
+
+    <div class="chapter-badge">HyperFrames Studio</div>
+    <h1 class="slide-title" style="margin-bottom: 20px;">系统设计核心课 · 第一章</h1>
+    <p class="slide-subtitle" style="margin-bottom: 40px;">从零扩展到百万用户 · 1080×1920 竖版课件镜头合集</p>
+
+    <div class="cards-container" style="gap: 16px;">
+      <a href="compositions/shot_01.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">01</div>
+        <div class="beat-content"><strong>封面</strong> · 从零扩展到百万用户</div>
+      </a>
+      <a href="compositions/shot_02.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">02</div>
+        <div class="beat-content"><strong>概览</strong> · 这一章在讲什么（5 拍逐步展开）</div>
+      </a>
+      <a href="compositions/shot_03.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">03</div>
+        <div class="beat-content"><strong>第 1 节</strong> · 单机部署架构图</div>
+      </a>
+      <a href="compositions/shot_04.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">04</div>
+        <div class="beat-content"><strong>第 1 节</strong> · 请求怎么走</div>
+      </a>
+      <a href="compositions/shot_05.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">05</div>
+        <div class="beat-content"><strong>第 2 节</strong> · 数据库拆出去</div>
+      </a>
+      <a href="compositions/shot_08.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">08</div>
+        <div class="beat-content"><strong>第 4 节</strong> · 负载均衡 (LB) 架构图</div>
+      </a>
+      <a href="compositions/shot_09.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">09</div>
+        <div class="beat-content"><strong>第 5 节</strong> · 数据库主从复制架构图</div>
+      </a>
+      <a href="compositions/shot_10.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">10</div>
+        <div class="beat-content"><strong>第 6 节</strong> · 缓存层 (Cache) 架构图</div>
+      </a>
+      <a href="compositions/shot_11.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">11</div>
+        <div class="beat-content"><strong>第 7 节</strong> · CDN 边缘加速架构图</div>
+      </a>
+      <a href="compositions/shot_12.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">12</div>
+        <div class="beat-content"><strong>第 8 节</strong> · 无状态 Web 层架构图</div>
+      </a>
+      <a href="compositions/shot_13.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">13</div>
+        <div class="beat-content"><strong>第 9 节</strong> · 多机房部署架构图</div>
+      </a>
+      <a href="compositions/shot_14.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">14</div>
+        <div class="beat-content"><strong>第 10 节</strong> · 消息队列削峰架构图</div>
+      </a>
+      <a href="compositions/shot_15.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">15</div>
+        <div class="beat-content"><strong>第 11 节</strong> · 可观测性与自动化架构图</div>
+      </a>
+      <a href="compositions/shot_16.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">16</div>
+        <div class="beat-content"><strong>第 12 节</strong> · 数据库分片架构图</div>
+      </a>
+      <a href="compositions/shot_17.html" class="beat-card" style="opacity: 1; text-decoration: none; transform: none;">
+        <div class="beat-badge">17</div>
+        <div class="beat-content"><strong>收束</strong> · 扩展系统必须记住的五条原则</div>
+      </a>
+    </div>
+
+  </div>
+
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+    window.__timelines["main"] = tl;
+  </script>
+</body>
+</html>

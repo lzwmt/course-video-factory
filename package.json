@@ -1,0 +1,14 @@
+{
+  "name": "course-video-factory",
+  "version": "1.0.0",
+  "description": "Generic vertical lecture video factory (JSON/Markdown to 1080x1920 MP4)",
+  "scripts": {
+    "dev": "hyperframes preview",
+    "render": "hyperframes render",
+    "lint": "hyperframes lint",
+    "check": "hyperframes check"
+  },
+  "dependencies": {
+    "hyperframes": "^0.8.20"
+  }
+}

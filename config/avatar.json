@@ -1,0 +1,29 @@
+{
+  "default_tier": "support",
+  "tiers": {
+    "host": {
+      "name": "主持档",
+      "size": 280,
+      "position": "center_bottom",
+      "description": "开场提问引导、总结收尾"
+    },
+    "support": {
+      "name": "陪讲档",
+      "size": 180,
+      "position": "bottom_right",
+      "description": "架构拓扑演进、代码展示与说明"
+    },
+    "pip": {
+      "name": "旁白档",
+      "size": 140,
+      "position": "bottom_left",
+      "description": "全链路数据流转、复杂粒子动画"
+    },
+    "hidden": {
+      "name": "静音/隐藏",
+      "size": 0,
+      "position": "none",
+      "description": "纯算法图解与公式推导"
+    }
+  }
+}

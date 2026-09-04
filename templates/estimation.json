@@ -1,0 +1,38 @@
+{
+  "id": "estimation",
+  "name": "封底估算推演型模板 (Template B)",
+  "description": "适用于系统容量规划、QPS/存储/带宽分步估算与量级经验法则推导场景",
+  "scene_recipe": [
+    {
+      "scene_type": "hook",
+      "default_avatar_tier": "host",
+      "required_fields": ["narration", "title"]
+    },
+    {
+      "scene_type": "assumptions",
+      "default_avatar_tier": "support",
+      "required_fields": ["narration"]
+    },
+    {
+      "scene_type": "calc_step",
+      "default_avatar_tier": "support",
+      "required_fields": ["narration", "calc_board"],
+      "allow_multiple": true
+    },
+    {
+      "scene_type": "units_ladder",
+      "default_avatar_tier": "pip",
+      "required_fields": ["narration"]
+    },
+    {
+      "scene_type": "summary",
+      "default_avatar_tier": "host",
+      "required_fields": ["narration", "badge"]
+    },
+    {
+      "scene_type": "preview",
+      "default_avatar_tier": "host",
+      "required_fields": ["narration", "title"]
+    }
+  ]
+}

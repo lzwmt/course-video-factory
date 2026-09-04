@@ -1,0 +1,35 @@
+# dependencies
+node_modules/
+
+# generated media & pipeline caches
+outputs/
+scripts/__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# local agent / editor
+.pi/
+.DS_Store
+*.swp
+
+# optional local venv
+.venv/
+venv/
+
+# secrets / local delivery
+config/delivery.json
+
+# model weights if ever vendored
+pretrained_weights/
+
+# snapshot export
+dist/
+
+# generated HTML (rebuilt by pipeline)
+compositions/
+
+# portrait drops (keep demo only if added later)
+assets/avatars/*
+!assets/avatars/.gitkeep
+!assets/avatars/demo.png

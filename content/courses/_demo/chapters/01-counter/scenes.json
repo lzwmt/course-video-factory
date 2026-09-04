@@ -1,0 +1,114 @@
+{
+  "scenes": [
+    {
+      "scene": 1,
+      "id": "scene_01_hook",
+      "scene_type": "hook",
+      "title": "计数器也会被写爆",
+      "badge": "Demo",
+      "keywords": ["counter", "hotspot"],
+      "mood": "inspirational",
+      "narration": "一个看起来只是加一的计数器，流量上来以后，会先卡在同一把锁上。今天用三步，把它从单机拆到分片。",
+      "actions": [
+        {
+          "type": "show_title",
+          "target": "stage_canvas",
+          "params": {
+            "title": "From One Box to Sharded Counters",
+            "subtitle": "Demo · 通用视频工厂"
+          }
+        }
+      ]
+    },
+    {
+      "scene": 2,
+      "id": "scene_02_problem",
+      "scene_type": "problem",
+      "title": "单机：一把锁走天下",
+      "badge": "单机",
+      "keywords": ["lock", "SPOF"],
+      "mood": "tense",
+      "narration": "Web、计数状态和存储挤在同一进程。每次加一都要抢锁，机器一宕机，计数直接停。",
+      "graph": {
+        "nodes": ["single"],
+        "edges": []
+      },
+      "actions": [
+        { "type": "node", "target": "single" },
+        { "type": "highlight", "target": "single" }
+      ]
+    },
+    {
+      "scene": 3,
+      "id": "scene_03_split",
+      "scene_type": "evolve",
+      "title": "拆读写：缓存挡住读",
+      "badge": "读写分离",
+      "keywords": ["cache", "mysql"],
+      "mood": "calm",
+      "narration": "先把 Web 和数据库拆开，读请求尽量打到缓存。读变快了，但热 key 的写入仍然打在同一行。",
+      "graph": {
+        "nodes": ["client", "web", "redis", "mysql"],
+        "edges": [["client", "web"], ["web", "redis"], ["web", "mysql"]]
+      },
+      "actions": [
+        { "type": "node", "target": "client" },
+        { "type": "add_node", "target": "web" },
+        { "type": "add_node", "target": "redis" },
+        { "type": "add_node", "target": "mysql" },
+        { "type": "connect", "from": "client", "to": "web" },
+        { "type": "packet", "from": "web", "to": "redis" }
+      ]
+    },
+    {
+      "scene": 4,
+      "id": "scene_04_shard",
+      "scene_type": "evolve",
+      "title": "分片：把热点打散",
+      "badge": "分片",
+      "keywords": ["shard", "hash"],
+      "mood": "excited",
+      "narration": "按计数器编号做哈希，写入打到不同分片。单分片锁不再挡住全局吞吐。",
+      "graph": {
+        "nodes": ["client", "lb", "web", "mysql"],
+        "edges": [["client", "lb"], ["lb", "web"], ["web", "mysql"]]
+      },
+      "actions": [
+        { "type": "add_node", "target": "lb" },
+        { "type": "connect", "from": "client", "to": "lb" },
+        { "type": "connect", "from": "lb", "to": "web" },
+        { "type": "highlight", "target": "mysql" }
+      ]
+    },
+    {
+      "scene": 5,
+      "id": "scene_05_flow",
+      "scene_type": "flow",
+      "title": "读路径：分片后再汇总",
+      "badge": "汇总",
+      "keywords": ["aggregate"],
+      "mood": "calm",
+      "narration": "读取时由协调者向各分片要局部值，再相加。可以接受近似值，也可以读齐再返回。",
+      "graph": {
+        "nodes": ["client", "lb", "web", "worker", "mysql"],
+        "edges": [["client", "lb"], ["lb", "web"], ["web", "worker"], ["worker", "mysql"]]
+      },
+      "actions": [
+        { "type": "packet", "from": "client", "to": "lb" },
+        { "type": "packet", "from": "lb", "to": "web" },
+        { "type": "packet", "from": "web", "to": "worker" }
+      ]
+    },
+    {
+      "scene": 6,
+      "id": "scene_06_summary",
+      "scene_type": "summary",
+      "title": "记住三句话",
+      "badge": "总结",
+      "keywords": ["summary"],
+      "mood": "proud",
+      "narration": "单机先正确，读写再拆开，热点就分片。这是演示课，换成你自己的 JSON 就能出片。",
+      "actions": []
+    }
+  ]
+}

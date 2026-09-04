@@ -1,0 +1,51 @@
+{
+  "id": "01",
+  "slug": "01-counter",
+  "title": "From One Box to Sharded Counters",
+  "title_zh": "从单机计数器到分片计数",
+  "source": "",
+  "attribution": "Demo",
+  "template": "system_evolution",
+  "learning_goal": "理解单机计数器如何因写入热点演进到分片计数",
+  "memory_sentence": "单机先撑着，读写一拆开，热点就分片。",
+  "core_problem": "一个全局计数器在写入打满单机内存与锁竞争之后该怎么拆？",
+  "target_duration_sec": 45,
+  "concepts": [
+    {
+      "id": "single_counter",
+      "name": "单机计数器",
+      "l1_one_liner": "一个进程里的整数，读写都走同一把锁",
+      "l2_principle": "正确性简单，但吞吐被单核与锁串行化上限卡住",
+      "l3_engineering": "适合演示与低流量；监控锁等待即可判断何时该拆",
+      "visual": { "type": "architecture_diagram", "highlight": ["single"] }
+    },
+    {
+      "id": "split_roles",
+      "name": "读写分离",
+      "l1_one_liner": "写入进主库，读取走副本或缓存",
+      "l2_principle": "读多写少时先把读路径从写锁上挪走",
+      "l3_engineering": "缓存未命中再回源；接受短暂滞后",
+      "visual": { "type": "architecture_diagram", "highlight": ["web", "redis", "mysql"] }
+    },
+    {
+      "id": "shard_counter",
+      "name": "分片计数",
+      "l1_one_liner": "把计数拆到多个分片，读时再汇总",
+      "l2_principle": "热点写入被哈希打散，单分片锁不再成为全局瓶颈",
+      "l3_engineering": "汇总可异步；强一致读需要读齐或用近似值",
+      "visual": { "type": "architecture_diagram", "highlight": ["lb", "worker"] }
+    }
+  ],
+  "mainline": [
+    {
+      "stage": "单机",
+      "bottleneck": "一把锁串行化所有加减",
+      "solution": "先把服务与存储拆开"
+    },
+    {
+      "stage": "读写分离",
+      "bottleneck": "写仍打在同一行",
+      "solution": "按键哈希分片"
+    }
+  ]
+}

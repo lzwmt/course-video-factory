@@ -1,0 +1,38 @@
+{
+  "id": "algorithm",
+  "name": "算法机制交互型模板 (Template C)",
+  "description": "适用于一致性哈希、限流算法、分布式ID、KV存储等算法机制与动态流转交互场景",
+  "scene_recipe": [
+    {
+      "scene_type": "hook",
+      "default_avatar_tier": "host",
+      "required_fields": ["narration", "title"]
+    },
+    {
+      "scene_type": "naive",
+      "default_avatar_tier": "host",
+      "required_fields": ["narration", "title"]
+    },
+    {
+      "scene_type": "algo_viz",
+      "default_avatar_tier": "support",
+      "required_fields": ["narration", "actions"],
+      "allow_multiple": true
+    },
+    {
+      "scene_type": "edge_case",
+      "default_avatar_tier": "support",
+      "required_fields": ["narration", "actions"]
+    },
+    {
+      "scene_type": "summary",
+      "default_avatar_tier": "host",
+      "required_fields": ["narration", "badge"]
+    },
+    {
+      "scene_type": "preview",
+      "default_avatar_tier": "host",
+      "required_fields": ["narration", "title"]
+    }
+  ]
+}

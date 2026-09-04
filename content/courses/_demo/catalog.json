@@ -1,0 +1,19 @@
+{
+  "course_id": "demo",
+  "book": "",
+  "book_reference": "",
+  "total_chapters": 1,
+  "chapters": [
+    {
+      "id": "01",
+      "slug": "counter",
+      "title": "From One Box to Sharded Counters",
+      "title_zh": "从单机计数器到分片计数",
+      "template": "system_evolution",
+      "status": "ready",
+      "dir": "content/courses/_demo/chapters/01-counter",
+      "target_duration_sec": 45.0
+    }
+  ],
+  "shorts": []
+}

@@ -1,0 +1,40 @@
+{
+  "id": "system_evolution",
+  "name": "系统演进型模板 (Template A)",
+  "description": "适用于按流量增长和瓶颈驱动的系统架构逐步演进场景",
+  "scene_recipe": [
+    {
+      "scene_type": "hook",
+      "default_avatar_tier": "host",
+      "required_fields": ["narration", "title"]
+    },
+    {
+      "scene_type": "problem",
+      "default_avatar_tier": "host",
+      "required_fields": ["narration", "graph", "actions"]
+    },
+    {
+      "scene_type": "evolve",
+      "default_avatar_tier": "support",
+      "required_fields": ["narration", "graph", "actions"],
+      "allow_multiple": true
+    },
+    {
+      "scene_type": "flow",
+      "default_avatar_tier": "pip",
+      "required_fields": ["narration", "graph", "actions"]
+    },
+    {
+      "scene_type": "summary",
+      "default_avatar_tier": "host",
+      "required_fields": ["narration", "badge"],
+      "cards_source": "concepts.l1_one_liner",
+      "max_cards": 3
+    },
+    {
+      "scene_type": "preview",
+      "default_avatar_tier": "host",
+      "required_fields": ["narration", "title"]
+    }
+  ]
+}

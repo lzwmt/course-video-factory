@@ -1,0 +1,10 @@
+{
+  "targets": {
+    "local": {
+      "type": "copy",
+      "destination": "./outputs/delivery/",
+      "auto_sync": false
+    }
+  },
+  "webhooks": []
+}
