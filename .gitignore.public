@@ -26,7 +26,6 @@ assets/avatars/*
 !assets/avatars/.gitkeep
 !assets/avatars/demo.png
 HANDOFF.md
-docs/PROGRESS.md
-docs/raw/
+docs/
 *.mp4
 *.wav
