@@ -1,7 +1,7 @@
 {
   "scenes": [
     {
-      "scene": 1,
+      "scene": "01",
       "id": "scene_01_hook",
       "scene_type": "hook",
       "title": "计数器也会被写爆",
@@ -14,14 +14,15 @@
       "narration": "一个看起来只是加一的计数器，流量上来以后，会先卡在同一把锁上。今天用三步，把它从单机拆到分片。",
       "actions": [
         {
-          "type": "show_title",
-          "target": "stage_canvas",
-          "params": {
-            "title": "From One Box to Sharded Counters",
-            "subtitle": "Demo · 通用视频工厂"
-          }
+          "type": "enter",
+          "target": "#title",
+          "title": "From One Box to Sharded Counters",
+          "subtitle": "Demo · 通用视频工厂",
+          "source_type": "show_title"
         }
       ],
+      "takeaway": "一个看起来只是加一的计数器，流量上来以后，会先卡在同一把锁上。",
+      "title_zh": "计数器也会被写爆",
       "avatar": {
         "state": "host",
         "size": 280,
@@ -29,7 +30,7 @@
       }
     },
     {
-      "scene": 2,
+      "scene": "02",
       "id": "scene_02_problem",
       "scene_type": "problem",
       "title": "单机：一把锁走天下",
@@ -56,6 +57,7 @@
           "target": "single"
         }
       ],
+      "title_zh": "单机：一把锁走天下",
       "avatar": {
         "state": "host",
         "size": 280,
@@ -63,13 +65,13 @@
       }
     },
     {
-      "scene": 3,
+      "scene": "03",
       "id": "scene_03_split",
       "scene_type": "evolve",
       "title": "拆读写：缓存挡住读",
       "badge": "读写分离",
       "keywords": [
-        "cache",
+        "缓存",
         "mysql"
       ],
       "mood": "calm",
@@ -124,6 +126,7 @@
           "to": "redis"
         }
       ],
+      "title_zh": "拆读写：缓存挡住读",
       "avatar": {
         "state": "support",
         "size": 180,
@@ -131,7 +134,7 @@
       }
     },
     {
-      "scene": 4,
+      "scene": "04",
       "id": "scene_04_shard",
       "scene_type": "evolve",
       "title": "分片：把热点打散",
@@ -184,6 +187,7 @@
           "target": "mysql"
         }
       ],
+      "title_zh": "分片：把热点打散",
       "avatar": {
         "state": "support",
         "size": 180,
@@ -191,7 +195,7 @@
       }
     },
     {
-      "scene": 5,
+      "scene": "05",
       "id": "scene_05_flow",
       "scene_type": "flow",
       "title": "读路径：分片后再汇总",
@@ -245,6 +249,7 @@
           "to": "worker"
         }
       ],
+      "title_zh": "读路径：分片后再汇总",
       "avatar": {
         "state": "pip",
         "size": 140,
@@ -252,58 +257,92 @@
       }
     },
     {
-      "scene": 6,
+      "scene": "06",
       "id": "scene_06_summary",
       "scene_type": "summary",
-      "title": "记住三句话",
-      "badge": "总结",
+      "title": "本节核心要点",
+      "badge": "本节要点",
       "keywords": [
         "summary"
       ],
       "mood": "proud",
-      "narration": "单机先正确，读写再拆开，热点就分片。这是演示课，换成你自己的 JSON 就能出片。",
+      "narration": "总结本节三要点：第一，读写一拆开，热点就分片；第二，资源争抢、物理上限与故障影响面；第三，状态解耦、独立扩容与高可用保障。",
       "actions": [
         {
           "type": "card",
           "index": 1,
-          "title": "1. 单机计数器: 一个进程里的整数，读写都走同一把锁",
+          "title": "1. 单机先撑着",
           "at": 0.6
         },
         {
           "type": "card",
           "index": 2,
-          "title": "2. 读写分离: 写入进主库，读取走副本或缓存",
+          "title": "2. 瓶颈与单点风险",
           "at": 1.8
         },
         {
           "type": "card",
           "index": 3,
-          "title": "3. 分片计数: 把计数拆到多个分片，读时再汇总",
+          "title": "3. 演进破局方向",
           "at": 3.0
         }
+      ],
+      "cards": [
+        {
+          "title": "1. 单机先撑着",
+          "desc": "读写一拆开，热点就分片",
+          "cls": "active"
+        },
+        {
+          "title": "2. 瓶颈与单点风险",
+          "desc": "资源争抢、物理上限与故障影响面",
+          "cls": "warning"
+        },
+        {
+          "title": "3. 演进破局方向",
+          "desc": "状态解耦、独立扩容与高可用保障",
+          "cls": "success"
+        }
+      ],
+      "title_zh": "本节核心要点",
+      "avatar": {
+        "state": "host",
+        "size": 280,
+        "position": "center_bottom"
+      }
+    },
+    {
+      "scene_type": "preview",
+      "title": "下一节：后续演进",
+      "actions": [
+        {
+          "type": "enter",
+          "target": "#title",
+          "at": 0.2
+        }
+      ],
+      "scene": "07",
+      "id": "shot_07",
+      "badge": "下一节预告",
+      "next_title": "后续演进",
+      "teasers": [
+        "后续演进 核心拆解",
+        "独立扩展与高可用架构",
+        "大厂面试核心考点推演"
+      ],
+      "cta": "关注主播 · 追更系统设计全书",
+      "title_zh": "下一节：后续演进",
+      "narration": "掌握了本节核心，下一节我们继续拆解：后续演进。关注主播，下期不见不散！",
+      "keywords": [
+        "掌握了本节核",
+        "下一节我们继",
+        "续拆解"
       ],
       "avatar": {
         "state": "host",
         "size": 280,
         "position": "center_bottom"
-      },
-      "cards": [
-        {
-          "title": "1. 单机计数器",
-          "desc": "一个进程里的整数，读写都走同一把锁",
-          "cls": "active"
-        },
-        {
-          "title": "2. 读写分离",
-          "desc": "写入进主库，读取走副本或缓存",
-          "cls": "success"
-        },
-        {
-          "title": "3. 分片计数",
-          "desc": "把计数拆到多个分片，读时再汇总",
-          "cls": "warning"
-        }
-      ]
+      }
     }
   ],
   "id": "01",

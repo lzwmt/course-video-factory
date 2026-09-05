@@ -239,6 +239,12 @@ def build_publish_meta(
     course = course_info or {}
     theme = course.get("theme") or {}
     title = str(spec.get("title") or spec.get("title_zh") or f"第 {chapter_id} 章")
+    section_id = str(spec.get("id") or "") if "-S" in str(spec.get("id") or "") else None
+    section_index = spec.get("section_index")
+    if section_id and section_index is None:
+        try: section_index = int(section_id.split("-S", 1)[1])
+        except (ValueError, IndexError): section_index = None
+    display_title = f"{chapter_id} 从零到千万 · 第 {int(section_index) if section_index is not None else chapter_id} 节 {title}" if section_id else title
     scenes = _scenes(spec)
     if duration is None:
         duration = float(spec.get("total_duration_sec") or spec.get("target_duration_sec") or 0.0)
@@ -251,10 +257,13 @@ def build_publish_meta(
     return {
         "course_id": course_id,
         "chapter_id": str(chapter_id),
-        "title": title,
+        "section_id": section_id,
+        "section_index": section_index,
+        "next_id": spec.get("next_id"),
+        "title": display_title,
         "durations": round(float(duration), 1),
         "platforms": build_platform_copy(
-            course_id, str(chapter_id), title, str(badge), keywords, markers, summary
+            course_id, str(chapter_id), display_title, str(badge), keywords, markers, summary
         ),
         "chapter_markers": markers,
     }

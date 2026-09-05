@@ -42,10 +42,21 @@ def run_qa_check(
     spec_path: Path | None = None,
     timed_spec_path: Path | None = None,
     target_duration: float | None = None,
+    section_mode: bool = False,
 ) -> tuple[bool, list[str]]:
     """Execute all assertions and return (pass_bool, list_of_report_lines)."""
     reports: list[str] = []
     failed = False
+    section_spec = None
+    if spec_path and spec_path.exists():
+        section_spec = json.loads(spec_path.read_text(encoding="utf-8"))
+    if section_mode or (section_spec and "-S" in str(section_spec.get("id", ""))):
+        count = len((section_spec or {}).get("scenes", []))
+        if 3 <= count <= 5:
+            reports.append(f"✅ 节级分镜数量合规: {count} (3-5)")
+        else:
+            reports.append(f"❌ 节级分镜数量不合规: {count} (必须为 3-5)")
+            failed = True
 
     if not final_mp4.exists():
         return False, [f"❌ 成片文件不存在: {final_mp4}"]
@@ -133,6 +144,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="System Design Video Render QA Gate")
     parser.add_argument("--chapter", help="Chapter ID from catalog (e.g. 01)")
     parser.add_argument("--short", help="Short ID from catalog (e.g. 01-redis-read)")
+    parser.add_argument("--section", help="Section ID from catalog (e.g. 01-S01)")
     parser.add_argument("--dir", help="Output directory containing final.mp4")
     parser.add_argument("--video", help="Direct path to final.mp4")
     parser.add_argument("--spec", help="Path to compiled spec JSON")
@@ -142,12 +154,12 @@ def main() -> None:
     video_path = Path(args.video) if args.video else None
     spec_path = Path(args.spec) if args.spec else None
 
-    if args.chapter or args.short:
+    if args.chapter or args.short or args.section:
         from scripts.compile_chapter import ChapterCompiler
         compiler = ChapterCompiler()
-        entry, entry_dir = compiler.resolve_entry(args.chapter, args.short)
+        entry, entry_dir = compiler.resolve_entry(args.chapter, args.short, section_id=args.section)
         if out_dir is None:
-            prefix = "ch" if args.chapter else "short_"
+            prefix = "ch" if args.chapter else ("" if args.section else "short_")
             eid = entry["id"].replace("-", "_")
             out_dir = ROOT / "outputs" / f"pipeline_v3_{prefix}{eid}"
         if spec_path is None:
@@ -166,6 +178,7 @@ def main() -> None:
         final_mp4=video_path,
         spec_path=spec_path,
         timed_spec_path=timed_spec,
+        section_mode=bool(args.section),
     )
 
     print("\n==========================================")

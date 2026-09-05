@@ -1,13 +1,13 @@
 (function (global) {
   const NODES = {
-    client: { x: 80, y: 80, w: 160, h: 72, label: "Client", fill: "#1e3a5f" },
-    lb: { x: 340, y: 80, w: 200, h: 72, label: "Load Balancer", fill: "#1e40af" },
-    web: { x: 620, y: 40, w: 240, h: 150, label: "Web Cluster", fill: "#164e63", sub: "stateless" },
-    redis: { x: 340, y: 280, w: 200, h: 80, label: "Redis Cache", fill: "#14532d" },
-    mysql: { x: 620, y: 280, w: 240, h: 80, label: "MySQL", fill: "#7c2d12" },
-    mq: { x: 80, y: 420, w: 200, h: 80, label: "Message Queue", fill: "#78350f" },
-    worker: { x: 340, y: 420, w: 200, h: 80, label: "Worker", fill: "#3f3f46" },
-    single: { x: 280, y: 180, w: 360, h: 160, label: "Single Server", fill: "#7f1d1d", sub: "Web + MySQL" },
+    client: { x: 80, y: 80, w: 160, h: 72, label: "客户端", fill: "#1e3a5f" },
+    lb: { x: 340, y: 80, w: 200, h: 72, label: "负载均衡 (LB)", fill: "#1e40af" },
+    web: { x: 620, y: 40, w: 240, h: 150, label: "Web 集群", fill: "#164e63", sub: "无状态服务" },
+    redis: { x: 340, y: 280, w: 200, h: 80, label: "Redis 缓存", fill: "#14532d" },
+    mysql: { x: 620, y: 280, w: 240, h: 80, label: "MySQL 数据库", fill: "#7c2d12" },
+    mq: { x: 80, y: 420, w: 200, h: 80, label: "消息队列 (MQ)", fill: "#78350f" },
+    worker: { x: 340, y: 420, w: 200, h: 80, label: "Worker 节点", fill: "#3f3f46" },
+    single: { x: 280, y: 180, w: 360, h: 160, label: "单机服务器", fill: "#7f1d1d", sub: "Web + 数据库 + 缓存" },
   };
 
   const ALIAS = {

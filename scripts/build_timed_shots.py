@@ -187,7 +187,7 @@ if __name__ == "__main__":
     parser.add_argument("--spec", default=str(ROOT / "data" / "ch1-v2-scenes.json"), help="Specification JSON")
     parser.add_argument("--out", default=str(ROOT / "outputs" / "pipeline"), help="Output directory")
     parser.add_argument("--engine", default="edge", choices=["edge", "qwen"], help="TTS engine")
-    parser.add_argument("--speaker", default="yunxi", help="Speaker name (yunxi/yunyang/xiaoxiao for edge, ryan for qwen)")
+    parser.add_argument("--speaker", default="yunjian", help="Speaker name (yunjian/yunxi/yunyang/xiaoxiao for edge)")
     parser.add_argument("--force", action="store_true", help="Force re-synthesizing all audio")
     args = parser.parse_args()
 

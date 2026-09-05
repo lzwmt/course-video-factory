@@ -20,6 +20,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+from scripts.action_normalize import normalize_scene_actions
+from scripts.scene_enrich import enrich_scene, enrich_scenes
 
 
 def load_json(path: Path) -> dict:
@@ -131,8 +133,15 @@ class ChapterCompiler:
         chapter_id: str | None = None,
         short_id: str | None = None,
         dir_path: str | Path | None = None,
+        section_id: str | None = None,
     ) -> tuple[dict, Path]:
         """Resolve catalog entry and directory for chapter or short."""
+        if section_id is not None:
+            for sec in self.catalog.get("sections", []):
+                if sec.get("id") == section_id or sec.get("slug") == section_id:
+                    return sec, self._resolve_path(sec.get("dir", ""))
+            raise ValueError(f"Section '{section_id}' not found in course '{self.course_id}'")
+
         if dir_path:
             p = Path(dir_path)
             if not p.is_absolute():
@@ -301,7 +310,33 @@ class ChapterCompiler:
         scenes_data: dict,
         template_data: dict,
     ) -> dict:
-        """Compile and resolve semantic tiers, summary cards, and defaults."""
+        scenes_data = copy.deepcopy(scenes_data)
+        next_title = ""
+        chapters_list = self.catalog.get("chapters", [])
+        current_cid = str(entry.get("chapter_id") or entry.get("id") or chapter_data.get("chapter_id") or "")
+        for c_i, ch in enumerate(chapters_list):
+            if str(ch.get("id")) == current_cid or ch.get("slug") == current_cid:
+                if c_i + 1 < len(chapters_list):
+                    next_title = ch.get("title_zh") or ch.get("title") or ""
+                break
+        sid = str(entry.get("id") or "")
+        for s_i, sec in enumerate(self.catalog.get("sections") or []):
+            if str(sec.get("id")) == sid:
+                if s_i + 1 < len(self.catalog.get("sections") or []):
+                    nxt = self.catalog["sections"][s_i + 1]
+                    next_title = nxt.get("title_zh") or nxt.get("title") or next_title
+                break
+        slug = str(entry.get("slug") or entry.get("id") or "")
+        source_text = str(chapter_data.get("content_markdown") or chapter_data.get("memory_sentence") or "")
+        badge = str((self.course_info.get("theme") or {}).get("badge_prefix") or chapter_data.get("attribution") or "")
+        raw_list = scenes_data.get("scenes") or []
+        scenes_data["scenes"] = enrich_scenes(
+            raw_list,
+            source_text=source_text,
+            next_title=str(next_title or ""),
+            badge_prefix=badge,
+            topic_hint=f"{slug} {chapter_data.get('title', '')}",
+        )
         errors = self.validate(entry, chapter_data, scenes_data, template_data)
         if errors:
             err_msg = f"[COMPILE ERROR] Validation failed for {entry.get('id', 'item')}:\n" + "\n".join(f"  - {e}" for e in errors)
@@ -321,6 +356,10 @@ class ChapterCompiler:
         )
         compiled["attribution"] = chapter_data.get("attribution") or self.course_info.get("attribution", "")
         compiled["memory_sentence"] = chapter_data.get("memory_sentence", "")
+        if entry.get("section_id") or entry.get("section_index") is not None:
+            compiled["chapter_id"] = entry.get("chapter_id") or chapter_data.get("chapter_id")
+            compiled["section_index"] = entry.get("section_index") or chapter_data.get("section_index")
+            compiled["next_id"] = entry.get("next_id")
 
         avatar_tiers = self.avatar_config.get("tiers", {})
         default_tier_name = self.avatar_config.get("default_tier", "support")
@@ -332,6 +371,7 @@ class ChapterCompiler:
 
         for idx, scene in enumerate(compiled.get("scenes", []), 1):
             stype = scene.get("scene_type", "evolve")
+
             recipe = recipe_map.get(stype, {})
 
             # 1. Resolve avatar
@@ -389,16 +429,16 @@ class ChapterCompiler:
                 next_t = next_chapter.get("title_zh") or next_chapter.get("title", "精彩进阶专题")
                 preview_idx = len(compiled.get("scenes", []))
                 course_title = self.course_info.get("name", "系统设计面试通关课")
-                badge_prefix = self.course_info.get("theme", {}).get("badge_prefix", "下集预告")
+                badge_prefix = "下一集预告"
                 compiled["scenes"].append({
                     "scene": f"{preview_idx:02d}",
                     "id": f"{preview_idx:02d}_preview",
                     "scene_type": "preview",
-                    "title": f"下集预告：{next_t}",
+                    "title": f"下一集预告：{next_t}",
                     "badge": f"{badge_prefix} · NEXT EPISODE",
                     "next_title": f"第 {int(next_num) if next_num.isdigit() else next_num} 讲 · {next_t}",
-                    "narration": f"下集预告：掌握了本节核心逻辑，下一集我们带来第 {int(next_num) if next_num.isdigit() else next_num} 讲：{next_t}。记得点赞关注不迷路！",
-                    "keywords": [next_t, "下集预告", "关注追更"],
+                    "narration": f"下一集预告：掌握了本节核心逻辑，下一集我们带来第 {int(next_num) if next_num.isdigit() else next_num} 讲：{next_t}。记得点赞关注不迷路！",
+                    "keywords": [next_t, "下一集预告", "关注追更"],
                     "mood": "conclusion",
                     "avatar_tier": "host",
                     "avatar": {
@@ -411,7 +451,7 @@ class ChapterCompiler:
                         "算法与高并发架构经典设计模式",
                         "大厂高频面试关键解题逻辑",
                     ],
-                    "cta": f"🔔 关注主播 · 追更《{course_title}》",
+                    "cta": f"关注主播 · 追更《{course_title}》",
                     "actions": []
                 })
 
@@ -422,14 +462,17 @@ class ChapterCompiler:
         chapter_id: str | None = None,
         short_id: str | None = None,
         dir_path: str | Path | None = None,
+        section_id: str | None = None,
         out_file: Path | None = None,
     ) -> Path:
         """Full flow: Resolve -> Load -> Sniff Template -> Compile -> Save -> Return Path."""
-        entry, target_dir = self.resolve_entry(chapter_id, short_id, dir_path)
+        entry, target_dir = self.resolve_entry(chapter_id, short_id, dir_path, section_id)
         chapter_file = target_dir / "chapter.json"
+        section_file = target_dir / "section.json"
         scenes_file = target_dir / "scenes.json"
 
-        chapter_data = load_json(chapter_file)
+        metadata_file = section_file if section_id and section_file.exists() else chapter_file
+        chapter_data = load_json(metadata_file)
         scenes_data = load_json(scenes_file)
 
         template_name = chapter_data.get("template") or entry.get("template") or sniff_template_type(chapter_data, scenes_data)
@@ -455,6 +498,7 @@ def main() -> None:
     parser.add_argument("--chapter", help="Chapter ID/slug (e.g. 01 or 02 or estimation)")
     parser.add_argument("--short", help="Short ID/slug (e.g. 01-redis-read)")
     parser.add_argument("--dir", help="Direct directory containing chapter.json & scenes.json")
+    parser.add_argument("--section", help="Section ID (e.g. 01-S01)")
     parser.add_argument("--out", help="Output path for compiled JSON")
     parser.add_argument("--validate-all", action="store_true", help="Validate all ready entries in catalog")
     args = parser.parse_args()
@@ -484,7 +528,7 @@ def main() -> None:
         print(f"\n[SUCCESS] Validated and compiled {ready_count} ready entries successfully across {len(courses_to_check)} course(s)!")
         return
 
-    if not (args.chapter or args.short or args.dir):
+    if not (args.chapter or args.short or args.dir or args.section):
         parser.print_help()
         sys.exit(1)
 
@@ -493,6 +537,7 @@ def main() -> None:
         chapter_id=args.chapter,
         short_id=args.short,
         dir_path=args.dir,
+        section_id=args.section,
         out_file=out_p,
     )
 

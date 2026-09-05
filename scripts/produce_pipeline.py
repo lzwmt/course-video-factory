@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import fcntl
 import json
+import re
 import subprocess
 import sys
 from contextlib import contextmanager
@@ -193,6 +194,9 @@ def compose_scene_avatars(timed_spec: Path, lecture: Path, presenter: Path, fina
         tasks.append((sid, t, dur, size, pos_x, pos_y, r, out_seg, ass))
         t += dur
 
+    voice_wav = final_mp4.parent / "voice.wav"
+    wav_dir = final_mp4.parent / "wav"
+
     def _render_pip_segment(task) -> Path:
         sid, start_t, dur, size, pos_x, pos_y, r, out_seg, ass = task
         ass_filter = ""
@@ -211,18 +215,39 @@ def compose_scene_avatars(timed_spec: Path, lecture: Path, presenter: Path, fina
             f"[bg][av]overlay={pos_x}:{pos_y}{overlay_out}"
             f"{ass_filter}"
         )
-        run_cmd([
+        seg_wav = wav_dir / f"item{sid}_beat01.wav"
+        if not seg_wav.exists() and sid.isdigit():
+            p_id = f"{int(sid):02d}"
+            cand = wav_dir / f"item{p_id}_beat01.wav"
+            if cand.exists():
+                seg_wav = cand
+
+        audio_inputs = []
+        audio_map = []
+        if seg_wav.exists():
+            audio_inputs = ["-i", str(seg_wav.resolve())]
+            audio_map = ["-map", "2:a"]
+        elif voice_wav.exists():
+            audio_inputs = ["-ss", f"{start_t:.3f}", "-t", f"{dur:.3f}", "-i", str(voice_wav.resolve())]
+            audio_map = ["-map", "2:a"]
+        else:
+            audio_map = ["-map", "1:a?"]
+
+        cmd = [
             "ffmpeg", "-y",
             "-ss", f"{start_t:.3f}", "-t", f"{dur:.3f}", "-i", str(lecture.resolve()),
-            "-ss", f"{start_t:.3f}", "-t", f"{dur:.3f}", "-i", str(presenter.resolve()),
+            "-stream_loop", "-1", "-ss", f"{start_t:.3f}", "-t", f"{dur:.3f}", "-i", str(presenter.resolve()),
+        ] + audio_inputs + [
             "-filter_complex", filt,
-            "-map", "[vout]", "-map", "1:a?",
+            "-map", "[vout]",
+        ] + audio_map + [
             "-t", f"{dur:.3f}",
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
             "-pix_fmt", "yuv420p", "-r", "30",
-            "-c:a", "aac", "-ar", "16000", "-ac", "1", "-b:a", "192k",
+            "-c:a", "aac", "-ar", "44100", "-ac", "2", "-b:a", "192k",
             str(out_seg),
-        ])
+        ]
+        run_cmd(cmd)
         return out_seg
 
     with ThreadPoolExecutor(max_workers=4) as executor:
@@ -242,13 +267,14 @@ def produce(
     spec_path: Path,
     out_dir: Path,
     fast_enhance: bool = False,
+    no_enhancer: bool = False,
     reuse_presenter: Path | None = None,
     skip_tts: bool = False,
     skip_render: bool = False,
     skip_presenter: bool = False,
     skip_compose: bool = False,
     tts_engine: str = "edge",
-    speaker: str = "yunxi",
+    speaker: str = "yunjian",
     force_tts: bool = False,
     avatar_image: Path | None = None,
     bgm_enabled: bool = True,
@@ -275,6 +301,9 @@ def produce(
     final_mp4 = out_dir / "final.mp4"
 
     spec = json.loads(Path(spec_path).read_text(encoding="utf-8")) if Path(spec_path).exists() else {}
+    if remote_name is None and "-S" in str(spec.get("id", "")):
+        sid = str(spec["id"]); slug = re.sub(r"[^a-z0-9]+", "-", str(spec.get("title", "section")).lower()).strip("-")
+        remote_name = f"sd_{sid}_{slug}.mp4"
     if incremental or fingerprint is not None:
         from scripts.cache_fingerprint import compute_fingerprint, plan_skips
         current_fp = fingerprint or compute_fingerprint(spec, course_info, avatar_config, root=ROOT)
@@ -340,11 +369,14 @@ def produce(
                 str(py), str(pipeline_py),
                 "--image", str(ryan_image.resolve()),
                 "--audio", str(voice_wav.resolve()),
-                "--speaker", "ryan",
+                "--speaker", speaker,
                 "--style", "auto",
                 "--out", str(presenter_mp4.resolve()),
             ]
-            dh_cmd.append("--fast-enhance" if fast_enhance else "--no-enhancer")
+            if no_enhancer:
+                dh_cmd.append("--no-enhancer")
+            elif fast_enhance:
+                dh_cmd.append("--fast-enhance")
             with presenter_gpu_lock():
                 run_cmd(dh_cmd, cwd=studio)
 
@@ -424,11 +456,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="End-to-end vertical lecture video producer")
     parser.add_argument("--course", default="demo", help="Course ID under content/courses/")
     parser.add_argument("--chapter", help="Chapter ID from catalog (e.g. '01' or 'scaling')")
+    parser.add_argument("--section", help="Section ID from catalog (e.g. '01-S01')")
     parser.add_argument("--short", help="Short ID from catalog (e.g. '01-redis-read')")
     parser.add_argument("--dir", help="Direct chapter directory")
     parser.add_argument("--spec", help="Direct path to scenes.json (Legacy/V2 mode)")
     parser.add_argument("--out", help="Output directory")
-    parser.add_argument("--fast-enhance", action="store_true", help="Enable GFPGAN fast enhancement")
+    parser.add_argument("--fast-enhance", action="store_true", help="GFPGAN stride 2 (~2x faster)")
+    parser.add_argument("--no-enhancer", action="store_true", help="Disable GFPGAN (default: GFPGAN on)")
     parser.add_argument("--reuse-presenter", help="Path to existing presenter dh.mp4")
     parser.add_argument("--skip-tts", action="store_true", help="Skip TTS if wav/timed json exist")
     parser.add_argument("--tts", default=None, choices=["edge", "qwen"], help="TTS engine (edge/qwen); default from course.json")
@@ -450,21 +484,21 @@ def main() -> None:
     compiler = ChapterCompiler(course_id=args.course)
     course_tts = compiler.course_info.get("tts") or {}
     tts_engine = args.tts or course_tts.get("engine") or "edge"
-    speaker = args.speaker or course_tts.get("speaker") or "yunxi"
+    speaker = args.speaker or course_tts.get("speaker") or "yunjian"
     avatar_rel = (compiler.course_info.get("avatar") or {}).get("image") or ""
     avatar_image = ROOT / avatar_rel if avatar_rel else None
 
     entry = {"id": "01"}
-    if args.chapter or args.short or args.dir:
-        entry, target_dir = compiler.resolve_entry(args.chapter, args.short, args.dir)
+    if args.chapter or args.short or args.dir or args.section:
+        entry, target_dir = compiler.resolve_entry(args.chapter, args.short, args.dir, args.section)
         compiled_spec = compiler.compile_target(
-            chapter_id=args.chapter, short_id=args.short, dir_path=args.dir
+            chapter_id=args.chapter, short_id=args.short, dir_path=args.dir, section_id=args.section
         )
         spec_path = compiled_spec
         if args.out:
             out_dir = Path(args.out)
         else:
-            prefix = "ch" if (args.chapter or args.dir) else "short_"
+            prefix = "ch" if (args.chapter or args.dir) else ("" if args.section else "short_")
             eid = str(entry["id"]).replace("-", "_")
             out_dir = ROOT / "outputs" / f"pipeline_{args.course}_{prefix}{eid}"
     elif args.spec:
@@ -480,6 +514,7 @@ def main() -> None:
         spec_path=spec_path,
         out_dir=out_dir,
         fast_enhance=args.fast_enhance,
+        no_enhancer=args.no_enhancer,
         reuse_presenter=Path(args.reuse_presenter) if args.reuse_presenter else None,
         skip_tts=args.skip_tts,
         skip_render=args.skip_render,

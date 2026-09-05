@@ -3,9 +3,9 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="${1:-"$ROOT/dist/oss-snapshot"}"
-rm -rf "$DEST"
 mkdir -p "$DEST"
-rsync -a \
+# Preserve DEST/.git (the public GitHub clone). --delete drops files removed from the factory.
+rsync -a --delete \
   --exclude-from="$ROOT/.gitignore.public" \
   --exclude '.git' \
   --exclude 'node_modules' \
@@ -15,7 +15,7 @@ mkdir -p "$DEST/assets/avatars"
 # Keep demo course even if rsync exclude was too aggressive
 rsync -a "$ROOT/content/courses/_demo/" "$DEST/content/courses/_demo/"
 echo "Snapshot: $DEST"
-echo "Next: cd $DEST && git init && git add . && git status"
+echo "Next: cd $DEST && git status && git add -A && git commit && git push"
 python3 - "$DEST" <<'PY'
 from pathlib import Path
 import sys

@@ -1,14 +1,26 @@
 #!/usr/bin/env python3
 """Generate HyperFrames HTML from Scene JSON + ArchGraph + CalcBoard + AlgoViz + action-player."""
 from __future__ import annotations
+import html
+import re
 
 import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+from scripts.action_normalize import normalize_scene_actions
+from scripts.scene_enrich import enrich_scene
 COMPS_DIR = ROOT / "compositions"
 _ACTIVE_THEME: dict = {}
 
+
+def _esc(text: object) -> str:
+    return html.escape(str(text or ""), quote=True)
+
+def _plain(text: object) -> str:
+    s = re.sub(r"<[^>]+>", " ", str(text or ""))
+    s = re.sub(r"\s+", " ", s).strip()
+    return _esc(s)
 
 def _html_header(theme: dict | None = None) -> str:
     t = theme or _ACTIVE_THEME or {}
@@ -62,6 +74,7 @@ CODE_LINES = [
 
 def _wrap(scene: dict, duration: float, inner: str, extra_js: str = "") -> str:
     scene_id = scene.get("scene") or "01"
+    normalize_scene_actions(scene)
     actions = list(scene.get("actions") or [])
     prelude = [
         {"type": "enter", "target": "#badge", "at": 0.05},
@@ -160,12 +173,12 @@ def _header(scene: dict) -> str:
     kw = scene.get("keywords") or []
     kw_html = ""
     if kw:
-        items = "".join(f'<span class="legend-item legend-{i % 3}">{k}</span>' for i, k in enumerate(kw[:3]))
+        items = "".join(f'<span class="legend-item legend-{i % 3}">{_plain(k)}</span>' for i, k in enumerate(kw[:3]))
         kw_html = f'\n      <div class="keyword-legend">{items}</div>'
     return f'''
     <div class="zone-header">
-      <div id="badge" class="chapter-badge">{scene.get("badge", "")}</div>
-      <h1 id="title" class="slide-title">{scene.get("title", "")}</h1>{kw_html}
+      <div id="badge" class="chapter-badge">{_plain(scene.get("badge", ""))}</div>
+      <h1 id="title" class="slide-title">{_plain(scene.get("title", ""))}</h1>{kw_html}
     </div>'''
 
 
@@ -189,12 +202,12 @@ def generate_hook_composition(scene: dict, duration: float):
     actions = scene.get("actions") or []
     counter_act = next((a for a in actions if a.get("type") == "counter"), None)
     if not counter_act:
-        takeaway = scene.get("narration") or scene.get("title") or ""
+        takeaway = scene.get("takeaway") or scene.get("narration") or scene.get("title") or ""
         inner = f'''
     {_header(scene)}
     <div class="zone-content">
       <div id="hook-card" class="beat-card active" style="padding:48px 36px;text-align:center;">
-        <div style="font-size:32px;line-height:1.6;color:#F8FAFC;">{takeaway}</div>
+        <div style="font-size:32px;line-height:1.6;color:#F8FAFC;">{_plain(takeaway)}</div>
       </div>
     </div>'''
         extra = 'tl.add(motion.enter("#hook-card"), 0.4);\n'
@@ -202,7 +215,7 @@ def generate_hook_composition(scene: dict, duration: float):
     from_val = counter_act.get("from", 100)
     to_val = counter_act.get("to", 10000)
     alert_act = next((a for a in actions if a.get("type") == "alert"), None)
-    alert_msg = alert_act.get("message", "SERVER OVERLOAD") if alert_act else "SERVER OVERLOAD"
+    alert_msg = _plain(alert_act.get("message", "服务器过载") if alert_act else "服务器过载")
     metric_label_zh = scene.get("metric_label_zh") or "并发在线用户"
     metric_label_en = scene.get("metric_label_en") or "ONLINE USERS"
     inner = f'''
@@ -242,6 +255,9 @@ def generate_problem_composition(scene: dict, duration: float) -> str:
           <div class="metric-label"><span>磁盘 IO</span><span id="io-val">0%</span></div>
           <div class="metric-bar-bg"><div id="io-bar" class="metric-bar-fill"></div></div>
         </div>
+      </div>
+      <div id="alert-box" class="beat-card danger" style="opacity:0;margin-top:16px;">
+        <div style="font-size:30px;font-weight:700;color:#FCA5A5;text-align:center;">⚠️ 单机过载 · 全站单点</div>
       </div>
     </div>'''
     return _wrap(scene, duration, inner, "")
@@ -379,11 +395,14 @@ def generate_terminal_composition(scene: dict, duration: float) -> str:
 
 
 def generate_summary_composition(scene: dict, duration: float) -> str:
-    cards = list(scene.get("cards") or [])
+    raw_cards = list(scene.get("cards") or [])
+    cards = [c for c in raw_cards if isinstance(c, dict) and c.get("title")]
     if not cards:
         for a in scene.get("actions") or []:
-            if a.get("type") == "card":
-                title_raw = a.get("title", "")
+            if isinstance(a, dict) and a.get("type") == "card":
+                title_raw = str(a.get("title", "")).strip()
+                if not title_raw:
+                    continue
                 if ":" in title_raw:
                     t, d = title_raw.split(":", 1)
                     cards.append({"title": t.strip(), "desc": d.strip()})
@@ -394,30 +413,31 @@ def generate_summary_composition(scene: dict, duration: float) -> str:
                     cards.append({"title": title_raw.strip(), "desc": ""})
     if not cards:
         cards = [
-            {"title": "1. 核心架构设计", "desc": "系统设计原则与最佳实践", "cls": "active"},
-            {"title": "2. 高性能与可扩展", "desc": "状态外置与多级缓存优化", "cls": "success"},
-            {"title": "3. 高可用与容灾", "desc": "熔断限流与异步削峰填谷", "cls": "warning"},
+            {"title": "1. 核心架构认知", "desc": "明确基础组件分工与数据流动路径", "cls": "active"},
+            {"title": "2. 瓶颈与单点风险", "desc": "资源争抢、物理上限与故障影响面", "cls": "warning"},
+            {"title": "3. 演进破局方向", "desc": "状态解耦、独立扩容与高可用保障", "cls": "success"},
         ]
-    classes = ["active", "success", "warning"]
+    classes = ["active", "warning", "success"]
     card_html = []
     for i, c in enumerate(cards[:3], 1):
         cls = c.get("cls") or classes[(i - 1) % len(classes)]
+        t = _plain(c.get("title", f"核心要点 {i}"))
+        d = _plain(c.get("desc", ""))
         card_html.append(
-            f'<div id="rule{i}" class="beat-card {cls}" style="opacity:0;">'
-            f'<div style="font-size:32px;font-weight:700;">{c.get("title","")}</div>'
-            f'<div style="font-size:26px;color:var(--color-secondary);margin-top:8px;">{c.get("desc","")}</div>'
+            f'<div id="rule{i}" class="beat-card {cls}" style="opacity:0;padding:24px 28px;margin-bottom:16px;">'
+            f'<div style="font-size:32px;font-weight:700;line-height:1.3;">{t}</div>'
+            f'<div style="font-size:24px;color:var(--color-secondary);margin-top:8px;line-height:1.4;">{d}</div>'
             f"</div>"
         )
-    cta_text = scene.get("cta") or "👉 下一集：深入拆解系统设计实战"
     inner = f'''
     {_header(scene)}
     <div class="zone-content">
       {"".join(card_html)}
-      <div id="cta-box" class="beat-card" style="opacity:0;border-style:dashed;">
-        <div style="font-size:28px;font-weight:700;color:#93c5fd;">{cta_text}</div>
-      </div>
     </div>'''
-    extra = 'tl.add(motion.enter("#cta-box"), 4.4);\n'
+    has_card_acts = any(isinstance(a, dict) and a.get("type") == "card" for a in (scene.get("actions") or []))
+    extra = ""
+    if not has_card_acts:
+        extra = 'tl.add(motion.enter("#rule1"), 0.5);\ntl.add(motion.enter("#rule2"), 1.6);\ntl.add(motion.enter("#rule3"), 2.7);\n'
     return _wrap(scene, duration, inner, extra)
 
 
@@ -588,8 +608,10 @@ def generate_algo_viz_composition(scene: dict, duration: float) -> str:
 
 
 def generate_preview_composition(scene: dict, duration: float) -> str:
-    next_title = scene.get("next_title") or scene.get("title", "下集预告")
-    badge_text = scene.get("badge") or "下集预告 · NEXT EPISODE"
+    next_t_raw = str(scene.get("next_title") or scene.get("title") or "下一节").replace("下节", "下一节")
+    next_title = _plain(next_t_raw)
+    badge_raw = str(scene.get("badge") or "下一节预告").replace("下节", "下一节")
+    badge_text = _plain(badge_raw)
     teasers = scene.get("teasers") or [
         "核心架构机制与实战演进",
         "高并发与高可用技术避坑指南",
@@ -601,10 +623,10 @@ def generate_preview_composition(scene: dict, duration: float) -> str:
         cls = classes[(i - 1) % len(classes)]
         teaser_html.append(
             f'<div id="teaser{i}" class="beat-card {cls}" style="opacity:0;padding:18px 24px;margin-bottom:14px;">'
-            f'<div style="font-size:26px;font-weight:700;">✨ 核心看点 {i}：{t}</div>'
+            f'<div style="font-size:26px;font-weight:700;">✨ 核心看点 {i}：{_plain(t)}</div>'
             f'</div>'
         )
-    cta_text = scene.get("cta") or "🔔 关注主播 · 追更《系统设计面试通关课》"
+    cta_text = _plain(scene.get("cta") or "关注主播 · 追更《系统设计面试通关课》")
     inner = f'''
     <div class="zone-header" style="padding-top:140px;">
       <div id="badge" class="chapter-badge" style="border-color:#F59E0B;color:#FCD34D;background:rgba(245,158,11,0.15);">{badge_text}</div>
@@ -612,7 +634,7 @@ def generate_preview_composition(scene: dict, duration: float) -> str:
     </div>
     <div class="zone-content">
       <div id="preview-box" class="beat-card" style="opacity:0;margin-bottom:18px;border-color:rgba(59,130,246,0.5);">
-        <div style="font-size:24px;color:#93C5FD;font-weight:700;margin-bottom:14px;">🔥 下期精彩内容划重点：</div>
+        <div style="font-size:24px;color:#93C5FD;font-weight:700;margin-bottom:14px;">📌 下期精彩内容划重点：</div>
         {"".join(teaser_html)}
       </div>
       <div id="cta-box" class="beat-card" style="opacity:0;border:2px dashed #38BDF8;background:rgba(14,165,233,0.12);text-align:center;padding:22px 20px;">
@@ -641,6 +663,12 @@ def generate_all_compositions(timed_spec_file: Path) -> list[Path]:
     for raw in spec.get("scenes") or spec.get("shots") or []:
         sid = str(raw.get("scene") or raw.get("shot", "01"))
         item = {**(extras.get(sid) or {}), **raw}
+        enrich_scene(
+            item,
+            source_text=str(spec.get("memory_sentence") or spec.get("title") or ""),
+            next_title=str(spec.get("next_title") or ""),
+            badge_prefix=str((_ACTIVE_THEME or {}).get("badge_prefix") or spec.get("attribution") or ""),
+        )
         if _ACTIVE_THEME and "theme" not in item:
             item["theme"] = _ACTIVE_THEME
         for k in ("total_duration_sec", "duration_sec"):

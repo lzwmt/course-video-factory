@@ -17,7 +17,7 @@ if str(ROOT) not in sys.path:
 
 @dataclass
 class ProduceJob:
-    kind: str  # chapter | short
+    kind: str  # chapter | section | short
     entry_id: str
     title: str
     spec_path: Path
@@ -29,13 +29,17 @@ class ProduceJob:
 
 
 def default_out_dir(course_id: str, kind: str, entry_id: str) -> Path:
-    prefix = "ch" if kind == "chapter" else "short_"
-    eid = str(entry_id).replace("-", "_")
+    prefix = "ch" if kind == "chapter" else ("" if kind == "section" else "short_")
+    eid = str(entry_id).replace("-", "_") if kind != "section" else str(entry_id)
     return ROOT / "outputs" / f"pipeline_{course_id}_{prefix}{eid}"
 
 
-def ready_entries(compiler, include_chapters: bool = True, include_shorts: bool = True) -> list[tuple[str, dict]]:
+def ready_entries(compiler, include_chapters: bool = True, include_shorts: bool = True, include_sections: bool = True) -> list[tuple[str, dict]]:
     items: list[tuple[str, dict]] = []
+    if include_sections:
+        for sec in compiler.catalog.get("sections") or []:
+            if sec.get("status") == "ready":
+                items.append(("section", sec))
     if include_chapters:
         for ch in compiler.catalog.get("chapters") or []:
             if ch.get("status") == "ready":
@@ -53,17 +57,20 @@ def build_jobs(
     force: bool,
     reuse_presenter: Path | None,
     only_ids: set[str] | None = None,
+    by: str = "section",
 ) -> list[ProduceJob]:
     from scripts.cache_fingerprint import compute_fingerprint, plan_skips
 
     avatar_cfg = compiler.avatar_config
     jobs: list[ProduceJob] = []
-    for kind, entry in ready_entries(compiler):
+    for kind, entry in ready_entries(compiler, include_chapters=by == "chapter", include_shorts=False, include_sections=by == "section"):
         eid = str(entry.get("id"))
-        if only_ids and eid not in only_ids and str(entry.get("slug") or "") not in only_ids:
+        if only_ids and eid not in only_ids and str(entry.get("slug") or "") not in only_ids and str(entry.get("chapter_id") or "") not in only_ids:
             continue
         if kind == "chapter":
             spec_path = compiler.compile_target(chapter_id=eid)
+        elif kind == "section":
+            spec_path = compiler.compile_target(section_id=eid)
         else:
             spec_path = compiler.compile_target(short_id=eid)
         spec = json.loads(spec_path.read_text(encoding="utf-8"))
@@ -97,6 +104,7 @@ def _produce_kwargs(job: ProduceJob, args, compiler, skip_override: dict[str, bo
         spec_path=job.spec_path,
         out_dir=job.out_dir,
         fast_enhance=args.fast_enhance,
+        no_enhancer=getattr(args, "no_enhancer", False),
         reuse_presenter=reuse,
         skip_tts=skips.get("tts", False),
         skip_render=skips.get("render", False),
@@ -129,17 +137,20 @@ def run_batch(args) -> list[ProduceJob]:
     compiler = ChapterCompiler(course_id=args.course)
     course_tts = compiler.course_info.get("tts") or {}
     args.tts_engine = args.tts or course_tts.get("engine") or "edge"
-    args.speaker = args.speaker or course_tts.get("speaker") or "yunxi"
+    args.speaker = args.speaker or course_tts.get("speaker") or "yunjian"
 
     only_ids = None
     if args.chapter:
         only_ids = {item.strip() for item in args.chapter.split(",") if item.strip()}
+    if args.section:
+        only_ids = {item.strip() for item in args.section.split(",") if item.strip()}
     jobs = build_jobs(
         compiler,
         args.course,
         force=args.force,
         reuse_presenter=Path(args.reuse_presenter) if args.reuse_presenter else None,
         only_ids=only_ids,
+        by=args.by,
     )
     if not jobs:
         print(f"[batch] no ready chapters/shorts for course {args.course}")
@@ -209,9 +220,12 @@ def main() -> None:
     parser.add_argument("--incremental", action="store_true", help="Skip unchanged stages (default)")
     parser.add_argument("--force", action="store_true", help="Ignore cache and rerun all stages")
     parser.add_argument("--chapter", help="Comma-separated chapter/short ids to limit the batch")
+    parser.add_argument("--section", help="Comma-separated section ids to limit the batch")
+    parser.add_argument("--by", choices=["section", "chapter"], default="section", help="Production unit (default: section)")
     parser.add_argument("--workers", type=int, default=int(os.environ.get("HF_CPU_WORKERS", "4")))
     parser.add_argument("--reuse-presenter", help="Reuse an existing dh.mp4 for all jobs")
-    parser.add_argument("--fast-enhance", action="store_true")
+    parser.add_argument("--fast-enhance", action="store_true", help="GFPGAN stride 2")
+    parser.add_argument("--no-enhancer", action="store_true", help="Disable GFPGAN (default: on)")
     parser.add_argument("--tts", choices=["edge", "qwen"])
     parser.add_argument("--speaker")
     parser.add_argument("--sync", action="store_true", help="Upload after QA pass")
@@ -219,7 +233,7 @@ def main() -> None:
     parser.add_argument("--no-bgm", action="store_true")
     parser.add_argument("--no-package", action="store_true")
     args = parser.parse_args()
-    if not (args.all or args.incremental or args.chapter or args.force):
+    if not (args.all or args.incremental or args.chapter or args.section or args.force):
         parser.error("specify --all, --incremental, --chapter, or --force")
     run_batch(args)
 

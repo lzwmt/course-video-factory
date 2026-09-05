@@ -261,6 +261,23 @@
         const cell = `#dp-${act.row}-${act.col} .dp-val`;
         tl.set(cell, { innerHTML: String(act.val) }, at + 0.25);
         tl.to(`#dp-${act.row}-${act.col} rect`, { stroke: "#22C55E", fill: "#14532D", duration: 0.3 }, at + 0.25);
+      } else {
+        if (typeof console !== "undefined" && console.warn) {
+          console.warn("[playActions] unknown type", type, act);
+        }
+        const low = String(type || "");
+        if (/ring/i.test(low)) {
+          tl.to("#ring-glow-track", { opacity: 1, duration: 0.4 }, at);
+          tl.to(".ring-node-group", { opacity: 1, stagger: 0.08, duration: 0.35 }, at + 0.15);
+        } else if (/formula|calc/i.test(low)) {
+          tl.to("#calc-formula", { opacity: 1, y: 0, duration: 0.35 }, at);
+        } else if (document.querySelector(".node-box")) {
+          tl.to(".node-box", { attr: { opacity: 1 }, stagger: 0.08, duration: 0.3, ease: "none" }, at);
+          tl.to(".graph-edge", { attr: { opacity: 1 }, stagger: 0.06, duration: 0.25, ease: "none" }, at + 0.15);
+        } else {
+          const fallback = sel(act.target || act.id) || "#title";
+          if (global.motion) tl.add(motion.enter(fallback, { y: 12, scale: 1 }), at);
+        }
       }
 
       t = at + 0.45;
